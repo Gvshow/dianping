@@ -43,29 +43,41 @@
         <button id="copy-btn">一键复制</button>
         <button id="next-btn">换一段</button>
     </div>
-    <script src="script.js"></script>
     <script>
-        document.getElementById('copy-btn').addEventListener('click', function() {
-            // 获取要复制的文本
-            const textToCopy = document.getElementById('display-text').textContent;
-            
-            // 尝试使用现代的 Clipboard API
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(textToCopy).then(() => {
-                    handleCopySuccess();
-                }).catch(err => {
-                    console.error('Clipboard API 失败:', err);
+        // 初始化显示文本的函数
+        function initDisplayText() {
+            const initialText = "欢迎来到雅斯特酒店百步亭店！"; // 示例初始文本
+            document.getElementById('display-text').textContent = initialText;
+        }
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // 页面加载时调用初始化文本
+            initDisplayText();
+
+            document.getElementById('copy-btn').addEventListener('click', function() {
+                const textToCopy = document.getElementById('display-text').textContent;
+                
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        handleCopySuccess();
+                    }).catch(err => {
+                        console.error('Clipboard API 失败:', err);
+                        fallbackCopyText(textToCopy);
+                    });
+                } else {
                     fallbackCopyText(textToCopy);
-                });
-            } else {
-                // 后备方案
-                fallbackCopyText(textToCopy);
-            }
+                }
+            });
+
+            document.getElementById('next-btn').addEventListener('click', function() {
+                // 这里应该有逻辑来改变display-text的内容
+                // 例如从一组预定义的句子中随机选择一句
+                const newText = "这是另一段示例文本。"; // 示例文本更换
+                document.getElementById('display-text').textContent = newText;
+            });
         });
 
-        // 复制成功后的处理
         function handleCopySuccess() {
-            // 记录点击
             fetch('record_click.php', {
                 method: 'POST',
                 headers: {
@@ -85,13 +97,9 @@
             .catch(error => console.error('Error:', error));
         }
 
-        // 后备复制方案
         function fallbackCopyText(text) {
-            // 创建临时文本区域
             const textArea = document.createElement('textarea');
             textArea.value = text;
-            
-            // 设置样式使其不可见
             textArea.style.position = 'fixed';
             textArea.style.left = '-9999px';
             textArea.style.top = '0';
@@ -101,7 +109,6 @@
             textArea.select();
             
             try {
-                // 执行复制命令
                 const successful = document.execCommand('copy');
                 if (successful) {
                     handleCopySuccess();
@@ -113,7 +120,6 @@
                 alert('复制失败，请重试');
             }
             
-            // 清理临时元素
             document.body.removeChild(textArea);
         }
     </script>
