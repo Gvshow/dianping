@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本管理</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-radius: 8px;
+        }
+
+        .search-box {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+            outline: none;
+        }
+
+        .text-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .text-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .text-content {
+            width: 100%;
+            min-height: 60px;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            display: none;
+            transition: all 0.3s ease;
+        }
+
+        .text-content:focus {
+            border-color: #2196F3;
+            box-shadow: 0 0 5px rgba(33, 150, 243, 0.3);
+            outline: none;
+        }
+
+        .text-display {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .back-btn {
+            background-color: #666;
+        }
+
+        .back-btn:hover {
+            background-color: #555;
+        }
+
+        .save-btn {
+            display: none;
+            background-color: #2196F3;
+        }
+
+        .save-btn:hover {
+            background-color: #1976D2;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 20px 0;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0 4px;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .pagination button:active:not(:disabled) {
+            transform: translateY(1px);
+            box-shadow: none;
+        }
+
+        .pagination button:disabled {
+            background: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+            border-color: #eee;
+        }
+
+        .pagination span {
+            color: #666;
+            font-weight: 500;
+        }
+
+        /* 添加按钮点击波纹效果 */
+        .button::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: scale(0);
+            transition: transform 0.3s ease-out;
+        }
+
+        .button:active::after {
+            transform: scale(2);
+            opacity: 0;
+            transition: 0s;
+        }
+
+        #message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 4px;
+            display: none;
+            color: white;
+            z-index: 1000;
+        }
+
+        .success { background-color: #4CAF50; }
+        .error { background-color: #f44336; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <input type="text" 
+                   class="search-box" 
+                   placeholder="搜索文本内容..." 
+                   oninput="handleSearch(this.value)">
+            <button class="button back-btn" onclick="window.location.href='index.html'">返回首页</button>
+        </div>
+
+        <div id="textList"></div>
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <div id="message"></div>
+
+    <script>
+        // 检查登录状态
+        if (!sessionStorage.getItem('adminAuthenticated')) {
+            window.location.href = 'login.html';
+        }
+
+        let texts = [];
+        let filteredTexts = [];
+        const itemsPerPage = 10;
+        let currentPage = 1;
+
+        // 搜索处理
+        function handleSearch(value) {
+            const searchText = value.toLowerCase();
+            filteredTexts = texts.filter(text => 
+                text.toLowerCase().includes(searchText)
+            );
+            currentPage = 1;
+            displayTexts();
+        }
+
+        // 显示文本列表
+        function displayTexts() {
+            const container = document.getElementById('textList');
+            container.innerHTML = '';
+            
+            const textsToShow = filteredTexts.length > 0 ? filteredTexts : texts;
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, textsToShow.length);
+            
+            for (let i = startIndex; i < endIndex; i++) {
+                const div = document.createElement('div');
+                div.className = 'text-item';
+                const actualIndex = filteredTexts.length > 0 ? 
+                    texts.indexOf(textsToShow[i]) : i;
+                
+                div.innerHTML = `
+                    <div class="text-display" onclick="toggleEdit(${actualIndex})">${textsToShow[i]}</div>
+                    <textarea class="text-content" id="textarea-${actualIndex}">${textsToShow[i]}</textarea>
+                    <button class="button save-btn" id="save-${actualIndex}" onclick="saveText(${actualIndex})">保存</button>
+                `;
+                container.appendChild(div);
+            }
+            
+            updatePagination(textsToShow.length);
+        }
+
+        // 切换编辑状态
+        function toggleEdit(index) {
+            const textDisplay = document.querySelector(`#textarea-${index}`).parentNode.querySelector('.text-display');
+            const textarea = document.querySelector(`#textarea-${index}`);
+            const saveBtn = document.querySelector(`#save-${index}`);
+            
+            textDisplay.style.display = 'none';
+            textarea.style.display = 'block';
+            saveBtn.style.display = 'inline-block';
+            textarea.focus();
+        }
+
+        // 保存文本
+        async function saveText(index) {
+            const textarea = document.querySelector(`#textarea-${index}`);
+            const textDisplay = textarea.parentNode.querySelector('.text-display');
+            const saveBtn = document.querySelector(`#save-${index}`);
+            
+            texts[index] = textarea.value;
+            
+            try {
+                const response = await fetch('save_texts.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(texts)
+                });
+
+                if (response.ok) {
+                    showMessage('保存成功', true);
+                    textDisplay.textContent = textarea.value;
+                    textDisplay.style.display = 'block';
+                    textarea.style.display = 'none';
+                    saveBtn.style.display = 'none';
+                } else {
+                    showMessage('保存失败，请重试', false);
+                }
+            } catch (error) {
+                console.error('保存失败:', error);
+                showMessage('保存失败，请重试', false);
+            }
+        }
+
+        // 更新分页
+        function updatePagination(totalItems) {
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            
+            // 首页按钮
+            const firstButton = document.createElement('button');
+            firstButton.textContent = '首页';
+            firstButton.disabled = currentPage === 1;
+            firstButton.onclick = () => changePage(1);
+            pagination.appendChild(firstButton);
+            
+            // 上一页按钮
+            const prevButton = document.createElement('button');
+            prevButton.textContent = '上一页';
+            prevButton.disabled = currentPage === 1;
+            prevButton.onclick = () => changePage(currentPage - 1);
+            pagination.appendChild(prevButton);
+            
+            // 页码显示
+            const pageInfo = document.createElement('span');
+            pageInfo.textContent = ` 第 ${currentPage} / ${totalPages} 页 `;
+            pageInfo.style.margin = '0 10px';
+            pagination.appendChild(pageInfo);
+            
+            // 下一页按钮
+            const nextButton = document.createElement('button');
+            nextButton.textContent = '下一页';
+            nextButton.disabled = currentPage === totalPages;
+            nextButton.onclick = () => changePage(currentPage + 1);
+            pagination.appendChild(nextButton);
+            
+            // 尾页按钮
+            const lastButton = document.createElement('button');
+            lastButton.textContent = '尾页';
+            lastButton.disabled = currentPage === totalPages;
+            lastButton.onclick = () => changePage(totalPages);
+            pagination.appendChild(lastButton);
+        }
+
+        // 换页面
+        function changePage(page) {
+            currentPage = page;
+            displayTexts();
+        }
+
+        // 显示消息
+        function showMessage(text, isSuccess) {
+            const message = document.getElementById('message');
+            message.textContent = text;
+            message.className = isSuccess ? 'success' : 'error';
+            message.style.display = 'block';
+            
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 3000);
+        }
+
+        // 加载文本数据
+        async function loadTexts() {
+            try {
+                console.log('开始加载文本数据...');
+                const response = await fetch('texts.json');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                console.log('获取响应成功，状态:', response.status);
+                const text = await response.text(); // 先获取原始文本
+                console.log('接收到的原始数据:', text);
+                
+                if (!text) {
+                    throw new Error('文件为空');
+                }
+                
+                try {
+                    texts = JSON.parse(text);
+                    console.log('JSON解析成功，数据长度:', texts.length);
+                    
+                    if (!Array.isArray(texts)) {
+                        throw new Error('数据格式不是数组');
+                    }
+                } catch (parseError) {
+                    console.error('JSON解析失败:', parseError);
+                    throw new Error('JSON解析失败: ' + parseError.message);
+                }
+                
+                filteredTexts = [];
+                displayTexts();
+                console.log('文本加载和显示完成');
+            } catch (error) {
+                console.error('加载失败详细信息:', error);
+                showMessage('加载失败: ' + error.message, false);
+            }
+        }
+
+        // 页面加载时获取文本
+        loadTexts();
+    </script>
+</body>
+</html> 

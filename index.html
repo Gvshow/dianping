@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>雅斯特酒店百步亭店欢迎您！</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .admin-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .manage-btn {
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .manage-btn:hover {
+            background-color: #45a049;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-button">
+        <button class="manage-btn" onclick="window.location.href='login.html'">管理</button>
+    </div>
+    <div class="container">
+        <img src="logo.PNG" alt="Logo" class="logo">
+        <h1>感谢您的支持</h1>
+        <p id="display-text"></p>
+        <button id="copy-btn">一键复制</button>
+        <button id="next-btn">换一段</button>
+    </div>
+    <script src="script.js"></script>
+    <script>
+        document.getElementById('copy-btn').addEventListener('click', function() {
+            // 获取要复制的文本
+            const textToCopy = document.getElementById('display-text').textContent;
+            
+            // 尝试使用现代的 Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    handleCopySuccess();
+                }).catch(err => {
+                    console.error('Clipboard API 失败:', err);
+                    fallbackCopyText(textToCopy);
+                });
+            } else {
+                // 后备方案
+                fallbackCopyText(textToCopy);
+            }
+        });
+
+        // 复制成功后的处理
+        function handleCopySuccess() {
+            // 记录点击
+            fetch('record_click.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'copy_click',
+                    timestamp: new Date().toISOString()
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('复制成功！');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // 后备复制方案
+        function fallbackCopyText(text) {
+            // 创建临时文本区域
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            
+            // 设置样式使其不可见
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            textArea.style.top = '0';
+            
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                // 执行复制命令
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    handleCopySuccess();
+                } else {
+                    alert('复制失败，请重试');
+                }
+            } catch (err) {
+                console.error('复制失败:', err);
+                alert('复制失败，请重试');
+            }
+            
+            // 清理临时元素
+            document.body.removeChild(textArea);
+        }
+    </script>
+</body>
+</html>
